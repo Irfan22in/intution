@@ -1,0 +1,106 @@
+# Frigate Configuration for USB Webcam
+# Use this configuration when using a USB camera connected to the VM
+# Copy this file to config/config.yml before starting Frigate
+
+mqtt:
+  enabled: false
+
+database:
+  path: /media/frigate/frigate.db
+
+api: {}
+
+detectors:
+  cpu1:
+    type: cpu
+
+model:
+  width: 320
+  height: 320
+  input_tensor: nhwc
+  input_pixel_format: rgb
+
+# go2rtc handles the USB camera stream and provides RTSP restreaming
+go2rtc:
+  streams:
+    camera1:
+      - "v4l2:///dev/video0"  # USB webcam using V4L2
+  rtsp:
+    listen: ":8554"
+  webrtc:
+    candidates:
+      - 127.0.0.1:8555
+      - stun:8555
+
+record:
+  enabled: true
+  retain:
+    days: 7
+    mode: all
+  events:
+    pre_capture: 20
+    post_capture: 20
+    retain:
+      default: 30
+      mode: active_objects
+    objects:
+      - person
+      - car
+
+snapshots:
+  enabled: true
+  retain:
+    default: 30
+  quality: 90
+  timestamp: true
+  bounding_box: true
+
+live:
+  height: 720
+  quality: 8
+
+objects:
+  track:
+    - person
+    - car
+    - dog
+    - cat
+
+cameras:
+  camera1:
+    enabled: true
+    ffmpeg:
+      inputs:
+        - path: rtsp://127.0.0.1:8554/camera1
+          roles:
+            - detect
+            - record
+      output_args:
+        record: preset-record-generic-audio-copy
+    detect:
+      width: 1280
+      height: 720
+      fps: 5
+      enabled: true
+    objects:
+      track:
+        - person
+        - car
+    record:
+      enabled: true
+      retain:
+        days: 7
+        mode: all
+      events:
+        pre_capture: 20
+        post_capture: 20
+        objects:
+          - person
+          - car
+        retain:
+          default: 30
+          mode: active_objects
+    snapshots:
+      enabled: true
+      timestamp: true
+      bounding_box: true

@@ -7,6 +7,10 @@ services:
     restart: unless-stopped
     privileged: true
     shm_size: '256mb'
+    # USB Camera device passthrough (uncomment the device you're using)
+    devices:
+      - /dev/video0:/dev/video0  # Primary USB webcam
+      # - /dev/video1:/dev/video1  # Secondary camera (if available)
     volumes:
       - /etc/localtime:/etc/localtime:ro
       - ./config:/config
@@ -16,14 +20,14 @@ services:
         tmpfs:
           size: 1000000000
     ports:
-      - "5000:5000"
-      - "8554:8554"
-      - "8555:8555/tcp"
-      - "8555:8555/udp"
-      - "1935:1935"
+      - "5000:5000"      # Frigate Web UI
+      - "8554:8554"      # RTSP restream
+      - "8555:8555/tcp"  # WebRTC over TCP
+      - "8555:8555/udp"  # WebRTC over UDP
+      - "1935:1935"      # RTMP (optional)
     environment:
       - TZ=${TIMEZONE:-America/New_York}
-      - FRIGATE_RTSP_USER=${FRIGATE_RTSP_USER:-optix_user}
+      - FRIGATE_RTSP_USER=${FRIGATE_RTSP_USER:-admin}
       - FRIGATE_RTSP_PASSWORD=${FRIGATE_RTSP_PASSWORD:-your_secure_password_here}
       - FRIGATE_MQTT_HOST=${MQTT_HOST:-}
       - FRIGATE_MQTT_PORT=${MQTT_PORT:-1883}
