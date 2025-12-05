@@ -1,0 +1,185 @@
+services:
+  grafana:
+    container_name: grafana
+    image: grafana/grafana-oss:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_SECURITY_ALLOW_EMBEDDING=true
+      - GF_SECURITY_CONTENT_SECURITY_POLICY=false
+      - GF_LOG_MODE=console
+      - GF_LOG_CONSOLE_FORMAT=json
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+
+
+      # --- Grafana using MySQL backend ---
+      - GF_DATABASE_TYPE=mysql
+      - GF_DATABASE_HOST=mysql:3306
+      - GF_DATABASE_NAME=grafana
+      - GF_DATABASE_USER=grafana
+      - GF_DATABASE_PASSWORD=SuperSecret!
+      - GF_DATABASE_SSL_MODE=disable
+      # (Optional tuning)
+      # - GF_DATABASE_CONN_MAX_LIFETIME=14400
+      # - GF_DATABASE_MAX_OPEN_CONNS=100
+      # - GF_DATABASE_MAX_IDLE_CONNS=100
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - dockernetworkservices
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  influxdb:
+    container_name: influxdb
+    image: influxdb:2.7
+    ports:
+      - "8086:8086"
+    environment:
+      - INFLUXDB_DB=mydb
+      - INFLUXDB_ADMIN_USER=admin
+      - INFLUXDB_ADMIN_PASSWORD=admin
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    networks:
+      - dockernetworkservices
+    restart: unless-stopped
+
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:latest
+    ports:
+      - "9000:9000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+    networks:
+      - dockernetworkservices
+    restart: unless-stopped
+
+  mysql:
+    container_name: mysql
+    image: mysql:8.0
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: Convergix@12345
+      MYSQL_DATABASE: optixdb                # your existing DB
+      MYSQL_USER: admin
+      MYSQL_PASSWORD: Convergix@12345
+      # (No need to declare grafana creds here; we’ll create via init script)
+    ports:
+      - "3306:3306"
+    volumes:
+      # Your existing persistent data path:
+      - /home/intuition/docker-compose/mysql:/var/lib/mysql
+      # NEW: init scripts folder (read-only) to create Grafana DB/user (and bookstack DB if needed)
+      - /home/intuition/docker-compose/mysql-init:/docker-entrypoint-initdb.d:ro  # <-- here
+    networks:
+      - dockernetworkservices
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-pConvergix@12345"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  phpmyadmin:
+    container_name: phpmyadmin
+    image: phpmyadmin/phpmyadmin:latest
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: Convergix@12345
+    ports:
+      - "3300:80"
+    depends_on:
+      - mysql
+    networks:
+      - dockernetworkservices
+
+  bookstack:
+    container_name: bookstack
+    image: lscr.io/linuxserver/bookstack:latest
+    environment:
+      - PUID=1000
+      - PGID=1000
+      # - APP_URL=http://localhost:6875
+      - TZ=America/New_York
+      - APP_KEY=base64:go81ySqN2KqsnD+Nh0ZhxbqeADr5YcqUDNe2Gzsb6BM=
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USERNAME=admin
+      - DB_PASSWORD=Convergix@12345
+      - DB_DATABASE=bookstack
+      - GUEST_LOGIN=true
+    ports:
+      - "6875:80"
+    volumes:
+      - bookstack_data:/config
+    networks:
+      - dockernetworkservices
+    restart: unless-stopped
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+  setuphost:
+    image: ${SETUPHOST_IMAGE}:${TAG}
+    container_name: ${SETUPHOST_CONTAINER}
+    volumes:
+      - /:/host
+    cap_add:
+      - ALL
+    environment:
+      - VERBOSE=${VERBOSE:-false}
+      - VOLUME
+      - APPARMOR_PROFILE=${APPARMOR_PROFILE:-unconfined}
+    secrets:
+      - web_login_password
+    pid: host
+    userns_mode: host
+    security_opt:
+      - apparmor:unconfined
+
+  runtime:
+    image: ${RUNTIME_IMAGE}:${TAG}
+    container_name: ${RUNTIME_CONTAINER}
+    depends_on:
+      setuphost:
+        condition: service_completed_successfully
+    environment:
+      - SHARED_NETWORK=false
+      - TZ
+    volumes:
+      - ${VOLUME}:/runtime_persistence
+    cap_add:
+      - NET_ADMIN
+    ports:
+      - "127.0.0.1:5161:5161"
+      - "5936:5936"
+    userns_mode: host
+    security_opt:
+      - apparmor:${APPARMOR_PROFILE:-unconfined}
+
+volumes:
+  portainer_data:
+    driver: local
+  grafana_data:
+    driver: local
+  influxdb_data:
+    driver: local
+  bookstack_data:
+    driver: local
+
+networks:
+  dockernetworkservices:
+    driver: bridge
+
+secrets:
+  web_login_password:
+    environment: "WEB_LOGIN_PASSWORD"
