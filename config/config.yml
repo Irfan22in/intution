@@ -63,7 +63,7 @@ cameras:
     enabled: true
     ffmpeg:
       inputs:
-        - path: rtsp://username:password@camera-ip:554/stream1
+        - path: http://77.222.181.11:8080/mjpg/video.mjpg
           roles:
             - detect
             - record
