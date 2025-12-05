@@ -11,8 +11,6 @@ services:
       - GF_LOG_MODE=console
       - GF_LOG_CONSOLE_FORMAT=json
       - GF_AUTH_ANONYMOUS_ENABLED=true
-
-
       # --- Grafana using MySQL backend ---
       - GF_DATABASE_TYPE=mysql
       - GF_DATABASE_HOST=mysql:3306
@@ -165,6 +163,37 @@ services:
     userns_mode: host
     security_opt:
       - apparmor:${APPARMOR_PROFILE:-unconfined}
+
+  frigate:
+    container_name: frigate
+    image: ghcr.io/blakeblackshear/frigate:stable
+    restart: unless-stopped
+    privileged: true
+    shm_size: '256mb'
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - ./config:/config
+      - ./storage:/media/frigate
+      - type: tmpfs
+        target: /tmp/cache
+        tmpfs:
+          size: 1000000000
+    ports:
+      - "5000:5000"
+      - "8554:8554"
+      - "8555:8555/tcp"
+      - "8555:8555/udp"
+      - "1935:1935"
+    environment:
+      - TZ=${TIMEZONE:-America/New_York}
+      - FRIGATE_RTSP_USER=${FRIGATE_RTSP_USER:-optix_user}
+      - FRIGATE_RTSP_PASSWORD=${FRIGATE_RTSP_PASSWORD:-your_secure_password_here}
+      - FRIGATE_MQTT_HOST=${MQTT_HOST:-}
+      - FRIGATE_MQTT_PORT=${MQTT_PORT:-1883}
+      - FRIGATE_MQTT_USER=${MQTT_USER:-}
+      - FRIGATE_MQTT_PASSWORD=${MQTT_PASSWORD:-}
+    networks:
+      - dockernetworkservices
 
 volumes:
   portainer_data:
