@@ -1,0 +1,446 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Frigate Clip Player</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            color: #eee;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+        
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        h1 {
+            color: #4ecca3;
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+        
+        .subtitle {
+            color: #888;
+            font-size: 1.1em;
+        }
+        
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        
+        button {
+            background: #4ecca3;
+            color: #1a1a2e;
+            border: none;
+            padding: 12px 24px;
+            font-size: 1em;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        button:hover {
+            background: #3db893;
+            transform: translateY(-2px);
+        }
+        
+        button:active {
+            transform: translateY(0);
+        }
+        
+        button.secondary {
+            background: #393e46;
+            color: #eee;
+        }
+        
+        button.secondary:hover {
+            background: #4a4f57;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+        }
+        
+        @media (max-width: 1000px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .video-section {
+            background: #0f0f1a;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+        }
+        
+        video {
+            width: 100%;
+            border-radius: 8px;
+            background: #000;
+        }
+        
+        .video-info {
+            margin-top: 15px;
+            padding: 15px;
+            background: #1a1a2e;
+            border-radius: 8px;
+        }
+        
+        .video-info h3 {
+            color: #4ecca3;
+            margin-bottom: 10px;
+        }
+        
+        .video-info p {
+            color: #888;
+            margin: 5px 0;
+        }
+        
+        .events-section {
+            background: #0f0f1a;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.3);
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        
+        .events-section h2 {
+            color: #4ecca3;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #333;
+        }
+        
+        .event-item {
+            background: #1a1a2e;
+            padding: 15px;
+            margin-bottom: 10px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-left: 4px solid transparent;
+        }
+        
+        .event-item:hover {
+            background: #232342;
+            border-left-color: #4ecca3;
+        }
+        
+        .event-item.active {
+            background: #232342;
+            border-left-color: #4ecca3;
+        }
+        
+        .event-label {
+            font-size: 1.2em;
+            font-weight: 600;
+            color: #fff;
+            text-transform: capitalize;
+        }
+        
+        .event-meta {
+            color: #888;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        
+        .event-thumbnail {
+            width: 100%;
+            height: 80px;
+            object-fit: cover;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+        
+        #status {
+            text-align: center;
+            padding: 15px;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            background: #1a1a2e;
+        }
+        
+        .status-loading {
+            color: #ffd93d;
+        }
+        
+        .status-success {
+            color: #4ecca3;
+        }
+        
+        .status-error {
+            color: #ff6b6b;
+        }
+        
+        .settings {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #0f0f1a;
+            border-radius: 8px;
+        }
+        
+        .settings label {
+            display: block;
+            margin-bottom: 5px;
+            color: #888;
+        }
+        
+        .settings input {
+            width: 100%;
+            padding: 10px;
+            background: #1a1a2e;
+            border: 1px solid #333;
+            border-radius: 4px;
+            color: #fff;
+            font-size: 1em;
+        }
+        
+        .settings input:focus {
+            outline: none;
+            border-color: #4ecca3;
+        }
+        
+        .no-events {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+        
+        .badge {
+            display: inline-block;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8em;
+            font-weight: 600;
+            margin-left: 8px;
+        }
+        
+        .badge-person { background: #4ecca3; color: #1a1a2e; }
+        .badge-car { background: #ffd93d; color: #1a1a2e; }
+        .badge-dog { background: #a855f7; color: #fff; }
+        .badge-cat { background: #ec4899; color: #fff; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🎬 Frigate Clip Player</h1>
+            <p class="subtitle">View and play event clips from your Frigate NVR</p>
+        </header>
+        
+        <div class="settings">
+            <label for="frigateUrl">Frigate Server URL:</label>
+            <input type="text" id="frigateUrl" value="http://localhost:5000" placeholder="http://localhost:5000">
+        </div>
+        
+        <div class="toolbar">
+            <button onclick="loadEvents()">🔄 Refresh Events</button>
+            <button onclick="playLatestClip()">▶️ Play Latest Clip</button>
+            <button class="secondary" onclick="openFrigateUI()">🌐 Open Frigate UI</button>
+        </div>
+        
+        <div id="status" class="status-loading">Click "Refresh Events" to load available clips</div>
+        
+        <div class="main-content">
+            <div class="video-section">
+                <video id="player" controls>
+                    <source id="videoSource" src="" type="video/mp4">
+                    Your browser does not support the video tag.
+                </video>
+                <div class="video-info" id="videoInfo">
+                    <h3>No Clip Selected</h3>
+                    <p>Select an event from the list to play its clip</p>
+                </div>
+            </div>
+            
+            <div class="events-section">
+                <h2>📹 Recent Events</h2>
+                <div id="eventsList">
+                    <div class="no-events">No events loaded yet</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentEventId = null;
+        let events = [];
+        
+        function getFrigateUrl() {
+            return document.getElementById('frigateUrl').value.replace(/\/$/, '');
+        }
+        
+        function setStatus(message, type = 'loading') {
+            const status = document.getElementById('status');
+            status.textContent = message;
+            status.className = `status-${type}`;
+        }
+        
+        async function loadEvents() {
+            setStatus('Loading events...', 'loading');
+            const url = getFrigateUrl();
+            
+            try {
+                const response = await fetch(`${url}/api/events?limit=30&has_clip=true`);
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+                
+                events = await response.json();
+                displayEvents(events);
+                setStatus(`Loaded ${events.length} events with clips`, 'success');
+            } catch (error) {
+                console.error('Error loading events:', error);
+                setStatus(`Error: ${error.message}. Make sure Frigate is running at ${url}`, 'error');
+                document.getElementById('eventsList').innerHTML = `
+                    <div class="no-events">
+                        <p>Failed to connect to Frigate</p>
+                        <p style="font-size: 0.9em; margin-top: 10px;">
+                            Check that:
+                            <br>• Frigate is running
+                            <br>• The URL is correct
+                            <br>• CORS is not blocking requests
+                        </p>
+                    </div>
+                `;
+            }
+        }
+        
+        function getBadgeClass(label) {
+            const classes = {
+                'person': 'badge-person',
+                'car': 'badge-car',
+                'dog': 'badge-dog',
+                'cat': 'badge-cat'
+            };
+            return classes[label] || 'badge-person';
+        }
+        
+        function formatDate(timestamp) {
+            return new Date(timestamp * 1000).toLocaleString();
+        }
+        
+        function displayEvents(events) {
+            const container = document.getElementById('eventsList');
+            
+            if (!events || events.length === 0) {
+                container.innerHTML = '<div class="no-events">No events with clips found</div>';
+                return;
+            }
+            
+            container.innerHTML = events.map(event => `
+                <div class="event-item ${event.id === currentEventId ? 'active' : ''}" 
+                     onclick="playClip('${event.id}')">
+                    <span class="event-label">${event.label}</span>
+                    <span class="badge ${getBadgeClass(event.label)}">${event.camera}</span>
+                    <div class="event-meta">
+                        ${formatDate(event.start_time)}
+                        ${event.sub_label ? ` • ${event.sub_label}` : ''}
+                    </div>
+                    <img class="event-thumbnail" 
+                         src="${getFrigateUrl()}/api/events/${event.id}/thumbnail.jpg" 
+                         alt="Thumbnail"
+                         onerror="this.style.display='none'">
+                </div>
+            `).join('');
+        }
+        
+        function playClip(eventId) {
+            const url = getFrigateUrl();
+            const clipUrl = `${url}/api/events/${eventId}/clip.mp4`;
+            
+            currentEventId = eventId;
+            
+            // Update active state
+            displayEvents(events);
+            
+            // Find event details
+            const event = events.find(e => e.id === eventId);
+            
+            // Update video
+            const video = document.getElementById('player');
+            document.getElementById('videoSource').src = clipUrl;
+            video.load();
+            video.play().catch(e => console.log('Autoplay prevented:', e));
+            
+            // Update info
+            if (event) {
+                document.getElementById('videoInfo').innerHTML = `
+                    <h3>${event.label} Detected</h3>
+                    <p><strong>Camera:</strong> ${event.camera}</p>
+                    <p><strong>Time:</strong> ${formatDate(event.start_time)}</p>
+                    <p><strong>Event ID:</strong> ${event.id}</p>
+                    <p><strong>Clip URL:</strong> <a href="${clipUrl}" target="_blank" style="color: #4ecca3;">Open in new tab</a></p>
+                `;
+            }
+            
+            setStatus(`Playing: ${event ? event.label : 'Event'} clip`, 'success');
+        }
+        
+        async function playLatestClip() {
+            setStatus('Fetching latest event...', 'loading');
+            
+            try {
+                const url = getFrigateUrl();
+                const response = await fetch(`${url}/api/events?limit=1&has_clip=true`);
+                const latestEvents = await response.json();
+                
+                if (latestEvents && latestEvents.length > 0) {
+                    // Add to events if not present
+                    if (!events.find(e => e.id === latestEvents[0].id)) {
+                        events.unshift(latestEvents[0]);
+                    }
+                    displayEvents(events);
+                    playClip(latestEvents[0].id);
+                } else {
+                    setStatus('No clips available yet', 'error');
+                }
+            } catch (error) {
+                setStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+        
+        function openFrigateUI() {
+            window.open(getFrigateUrl(), '_blank');
+        }
+        
+        // Auto-load events on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            loadEvents();
+        });
+        
+        // Allow Enter key to reload events from URL input
+        document.getElementById('frigateUrl').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                loadEvents();
+            }
+        });
+    </script>
+</body>
+</html>
